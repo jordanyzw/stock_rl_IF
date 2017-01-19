@@ -67,6 +67,14 @@ class ExperienceReplay(object):
 		
 		return inputs, targets
 
+def copy_model_weight(q_estimator, target_estimator):
+	q_weights = q_estimator.get_weights()
+	target_weights = target_estimator.get_weights()
+	for i in xrange(len(q_weights)):
+		target_weights[i] = q_weights[i]
+	target_estimator.set_weights(target_weights)
+	return target_estimator
+
 
 def train():
 	import sys
@@ -96,13 +104,15 @@ def train():
 	max_memory = 5000
 	batch_size = 256
 	discount = 0.9
-
+	update_target_weight_step = 10
 	from keras.optimizers import SGD
 	model = MarketModelBuilder(modelFilename).getModel()
+	target_model = MarketModelBuilder(modelFilename).getModel()
 	
 
 	sgd = SGD(lr = 0.001, decay = 1e-6, momentum = 0.9, nesterov = True)
 	model.compile(loss='mse', optimizer='rmsprop')
+	target_model.compile(loss='mse', optimizer='rmsprop')
 
 
 
@@ -120,6 +130,8 @@ def train():
 		cumReward = 0
 		cum_profit = {}
 		pre_action = {}
+
+		iter_cnt = 0
 		while not game_over:
 			input_tm1 = input_t
 			isRandom = False
@@ -153,8 +165,12 @@ def train():
 
 			# adapt model
 			if(len(exp_replay.memory) >= batch_size):
-				inputs, targets = exp_replay.get_batch(model, batch_size=batch_size)
+				inputs, targets = exp_replay.get_batch(target_model, batch_size=batch_size)
 				loss += model.train_on_batch(inputs, targets)
+			if(iter_cnt % update_target_weight_step == 0): # update target estimator every 5 step
+				print "update target model weights"
+				target_model = copy_model_weight(model, target_model)
+			iter_cnt += 1
 
 		if cumReward > 0 and game_over:
 			win_cnt += 1

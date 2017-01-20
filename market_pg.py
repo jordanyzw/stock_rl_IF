@@ -62,7 +62,7 @@ class PolicyGradient:
 			while not game_over:
 				aprob = model.predict(observation)[0]
 				inputs.append(observation)
-				predicteds.append(aprob)
+				predicteds.append(aprob) 
 				
 				if aprob.shape[0] > 1:
 					action = np.random.choice(self.env.action_space.n, 1, p = aprob / np.sum(aprob))[0]
@@ -103,8 +103,8 @@ class PolicyGradient:
 					inputs_[i].append(block[0])
 			inputs_ = [np.array(inputs_[i]) for i in xrange(dim)]
 
-			outputs_ = np.vstack(outputs)
-			predicteds_ = np.vstack(predicteds)
+			outputs_ = np.vstack(outputs)#0 or 1
+			predicteds_ = np.vstack(predicteds)# probabilty
 			rewards_ = np.vstack(rewards)
 
 			discounted_rewards_ = self.discount_rewards(rewards_)
@@ -122,7 +122,8 @@ class PolicyGradient:
 				if discounted_reward < 0:
 					outputs_[i] = 1 - outputs_[i]
 					outputs_[i] = outputs_[i] / sum(outputs_[i])
-				outputs_[i] = np.minimum(1, np.maximum(0, predicteds_[i] + (outputs_[i] - predicteds_[i]) * abs(discounted_reward)))
+				outputs_[i] = np.minimum(1, np.maximum(0, predicteds_[i] + \
+					(outputs_[i] - predicteds_[i]) * abs(discounted_reward)))
 
 				if verbose > 1:
 					print predicteds_[i], outputs_[i], reward, discounted_reward
@@ -155,7 +156,7 @@ def pg_train():
 	env = MarketEnv(dir_path = "./If_index/", target_codes = codeMap.keys(),  start_date = "2013-05-26", end_date = "2015-08-25", sudden_death = -1.0)
 
 	pg = PolicyGradient(env, discount = 0.9, model_filename = modelFilename, history_filename = historyFilename)
-	pg.train(verbose = 1)
+	pg.train(verbose = 2)
 
 
 if __name__ == "__main__":
